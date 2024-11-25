@@ -1,3 +1,6 @@
-locals {
-  vnet_name = "uo_1" + var.vnet_base_name + "_01"
+locals {  
+  prefix = "uo_"
+  suffix = "_01"
+
+  vnet_name  = "${local.prefix}${var.vnet_base_name}${local.suffix}"
 }
