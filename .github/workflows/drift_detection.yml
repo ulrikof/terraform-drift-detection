@@ -1,4 +1,4 @@
-name: Terraform Drift Detection and Handling
+name: Terraform Apply for Drift Detection
 
 on:
   schedule:
@@ -14,7 +14,7 @@ env:
   WORKING_DIR: ./  # Directory containing Terraform files
 
 jobs:
-  drift-detection:
+  apply-changes:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,28 +26,14 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0  # Use your required Terraform version
+          terraform_version: 1.5.0  # Adjust based on your Terraform version
 
       # Step 3: Initialize Terraform
       - name: Terraform Init
         run: terraform init
         working-directory: ${{ env.WORKING_DIR }}
 
-      # Step 4: Run Terraform Plan
-      - name: Terraform Plan
-        run: |
-          terraform plan -detailed-exitcode -out=tfplan.binary || exit_code=$?
-          echo "exit_code=$exit_code" >> $GITHUB_ENV
+      # Step 4: Apply Changes
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
         working-directory: ${{ env.WORKING_DIR }}
-        continue-on-error: true
-
-      # Step 5: Apply Changes if Drift Detected
-      - name: Apply Changes (Drift Detected)
-        if: env.exit_code == '2'
-        run: terraform apply -auto-approve tfplan.binary
-        working-directory: ${{ env.WORKING_DIR }}
-
-      # Step 6: Log No Drift
-      - name: Log No Drift
-        if: env.exit_code == '0'
-        run: echo "No drift detected. All resources are up-to-date."
