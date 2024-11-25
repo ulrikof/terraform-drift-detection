@@ -11,58 +11,43 @@ env:
   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  WORKING_DIR: ./  # Specify the directory where Terraform files are located
+  WORKING_DIR: ./  # Directory containing Terraform files
 
 jobs:
   drift-detection:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the Repository
+      # Step 1: Checkout Repository
       - name: Checkout Repository
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
 
-      # Step 2: Install Terraform
+      # Step 2: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.9.8  # Ensure this matches your Terraform version
+          terraform_version: 1.5.0  # Use your required Terraform version
 
-      # Step 3: Terraform Init
+      # Step 3: Initialize Terraform
       - name: Terraform Init
         run: terraform init
         working-directory: ${{ env.WORKING_DIR }}
 
-      # Step 4: Select Default Workspace
-      - name: Terraform Workspace Select
-        run: terraform workspace select default || terraform workspace new default
-        working-directory: ${{ env.WORKING_DIR }}
-
-      # Step 5: Run Terraform Plan
+      # Step 4: Run Terraform Plan
       - name: Terraform Plan
-        id: plan
-        continue-on-error: true  # Continue even if drift is detected
         run: |
           terraform plan -detailed-exitcode -out=tfplan.binary || exit_code=$?
           echo "exit_code=$exit_code" >> $GITHUB_ENV
         working-directory: ${{ env.WORKING_DIR }}
+        continue-on-error: true
 
-      # Step 6: Handle Drift
-      - name: Apply Changes (Handle Drift)
-        if: env.exit_code == '2'  # Drift detected
-        run: |
-          echo "Drift detected! Applying changes..."
-          terraform apply -auto-approve tfplan.binary
+      # Step 5: Apply Changes if Drift Detected
+      - name: Apply Changes (Drift Detected)
+        if: env.exit_code == '2'
+        run: terraform apply -auto-approve tfplan.binary
         working-directory: ${{ env.WORKING_DIR }}
 
-      # Step 7: Log No Drift
-      - name: No Drift Detected
-        if: env.exit_code == '0'  # No changes required
+      # Step 6: Log No Drift
+      - name: Log No Drift
+        if: env.exit_code == '0'
         run: echo "No drift detected. All resources are up-to-date."
-
-      # Step 8: Handle Errors
-      - name: Handle Errors
-        if: env.exit_code == '1'  # Error occurred during Terraform Plan
-        run: |
-          echo "Error during Terraform plan! Please investigate."
-          exit 1
