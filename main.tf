@@ -18,3 +18,5 @@ module "vm" {
   nic_base_name = "test_nic"
   subnet_id     = module.vnet.subnet_id
 }
+
+#test
