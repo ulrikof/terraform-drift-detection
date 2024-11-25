@@ -20,6 +20,11 @@ resource "azurerm_linux_virtual_machine" "vm" {
     azurerm_network_interface.nic.id,
   ]
 
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDIktg1lswdLg0H2OU/BcAPN8vdCvLKzrVYkXAJgxa+004/UMrtrWaDDV0XgBxAwuJrcVmUmkewh1qMA6KkpMgd34zaHWX9Lh/BJsgbrJhanOWwNpEw3z/Yhhl0v7UBgLHyop6ylUaJR5+4D6uxaK3scFOc2Etdg8oJew5v+VgCyuqXD+0trcD2kszz1oGuG7Rd6wFihf55sEkUGt1xHgNiemFB2O6EL6c26viJLS1qDm9smzaUcM6cEeWVy0v2fxjUj+zjJQHw8a/AepgYKqppv9jH3x1HcIqgLUrne25HQ8XzD4NjVsPp/shXW5/zAScWzOqJL2sMV+E0Xw7hldbz ulrikofstad@Ulriks-MacBook-Pro.local"
+  }
+
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
