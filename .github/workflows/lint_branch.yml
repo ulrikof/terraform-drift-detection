@@ -1,0 +1,27 @@
+name: Deploy branch infrastructure
+
+on:
+  push:
+    branches-ignore:
+      - "main"
+    paths-ignore:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  DEPLOY_WORKING_DIR: ./deployments/
+
+jobs:
+  lint:
+    uses: ./.github/workflows/terraform_lint.yml # Call the reusable lint workflow
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  tfsec:
+    uses: ./.github/workflows/tfsec.yml # Call the reusable tfsec workflow

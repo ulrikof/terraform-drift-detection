@@ -1,0 +1,16 @@
+name: Terraform Security Check
+
+on:
+  workflow_call: # Make the workflow callable by other workflows
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: "Security Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          additional_args: -m CRITICAL # This runs tfsec in a way that only warns about critical security warnings. Usefull for a project like this where we are mostly testing.

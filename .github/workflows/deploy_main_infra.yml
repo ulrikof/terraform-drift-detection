@@ -1,0 +1,140 @@
+name: Deploy main infrastructure
+
+on:
+  push:
+    branches:
+      - "main"
+    paths-ignore:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  DEPLOY_WORKING_DIR: ./deployments/
+  GLOBAL_WORKING_DIR: ./global/
+
+jobs:
+  lint:
+    uses: ./.github/workflows/terraform_lint.yml # Call the reusable lint workflow
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+  tfsec:
+    uses: ./.github/workflows/tfsec.yml # Call the reusable tfsec workflow
+
+  deploy_global:
+    needs: [lint, tfsec] # Only run when the lint and tfsec workflows have passed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.GLOBAL_WORKING_DIR }}
+
+      - name: Terraform workspace select default
+        run: terraform workspace select default
+        working-directory: ${{ env.GLOBAL_WORKING_DIR }}
+
+      - name: Terraform apply global
+        id: apply
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.GLOBAL_WORKING_DIR }}
+
+  deploy_dev:
+    needs: deploy_global # Run after the global resources have been updated
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform workspace select or create dev
+        run: terraform workspace select -or-create dev
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform apply dev
+        id: apply
+        run: terraform apply -auto-approve -var-file="terraform.tfvars.dev" # Apply with the dev tfvars file
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+  deploy_stage:
+    needs: deploy_dev # Run after the dev infra has been updated
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform workspace select or create stage
+        run: terraform workspace select -or-create stage
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform apply stage
+        id: apply
+        run: terraform apply -auto-approve -var-file="terraform.tfvars.staging" # Apply with the staging tfvars file
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+  deploy_prod:
+    needs: deploy_stage # Run after the stage infra has been updated
+    runs-on: ubuntu-latest
+
+    # The following two lines would be used to create a manuall check before updating the prod enviroment.
+    # However, this is commented out since using environments is only available in public repositories.
+
+    #environment:
+    #  name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform workspace select or create prod
+        run: terraform workspace select -or-create prod
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
+
+      - name: Terraform apply prod
+        id: apply
+        run: terraform apply -auto-approve -var-file="terraform.tfvars.prod" # Apply with the prod tfvars file
+        working-directory: ${{ env.DEPLOY_WORKING_DIR }}
