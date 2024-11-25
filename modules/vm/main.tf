@@ -14,7 +14,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   name                = local.vm_name
   resource_group_name = var.rg_name
   location            = var.location
-  size                = "Standard_B1ls" # Cheapest VM SKU
+  size                = "Standard_B1s"
   admin_username      = "adminuser"
   network_interface_ids = [
     azurerm_network_interface.nic.id,
