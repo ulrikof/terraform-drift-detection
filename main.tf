@@ -14,7 +14,7 @@ module "vm" {
   source        = "./modules/vm"
   rg_name       = azurerm_resource_group.rg.name
   location      = azurerm_resource_group.rg.location
-  vm_base_name  = "test_vm"
+  vm_base_name  = "vm"
   nic_base_name = "test_nic"
   subnet_id     = module.vnet.subnet_id
 }
